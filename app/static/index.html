@@ -83,10 +83,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-bottom-width:2px;b
  <div style="flex-basis:100%;display:flex;justify-content:flex-end"><span id="state">loading…</span></div>
 </div></header>
 <div class="wrap">
-<section class="card"><h2>Policy</h2><div class="grid" id="keys"></div>
- <div class="hint">⚡ Changes apply live: Hermes reloads <code>config.yaml</code> on mtime change. The restart buttons above are a fallback.</div></section>
-
-<section class="card"><h2>Deny rules <span class="pill" id="cnt"></span><span class="pill">hard floor · beats yolo / mode off</span></h2>
+<section class="card"><h2>Deny rules <span class="pill" id="cnt"></span><span class="pill">hard floor · beats yolo / mode off</span><span class="pill">⚡ applies live</span></h2>
  <div class="toolbar"><input class="in" id="filter" placeholder="🔍 filter rules   ( / )"><input class="in" id="newp" placeholder="＋ new glob, e.g. *terraform destroy*"><button class="btn" id="add">Add rule</button></div>
  <div class="chips" id="chips"></div>
  <div class="rules" id="rules"></div></section>
@@ -108,22 +105,8 @@ const api=async(m,u,b)=>{const r=await fetch(u,{method:m,headers:{'Content-Type'
  const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(typeof j.detail=='string'?j.detail:(j.detail&&j.detail.detail)||r.status);e.status=r.status;e.body=j;throw e}return j};
 const st=(t,c)=>{$('state').textContent=t;$('state').className=c||''};
 const toast=(t,c)=>{const d=document.createElement('div');d.textContent=t;if(c)d.className=c;$('toast').append(d);setTimeout(()=>d.remove(),3500)};
-const WARN={mode:'off',cron_mode:'approve',unattended_mode:'approve'};
-const DESC={mode:'manual: ask for every flagged command · smart: LLM decides low-risk · off: no prompts (yolo)',
- cron_mode:'Flagged commands in cron jobs (no user present)',unattended_mode:'Flagged commands on unattended platforms',
- destructive_slash_confirm:'Ask before destructive slash commands'};
 const famOf=p=>/hermes-config|helper\.sock/.test(p)?'guard':/^aws\b/.test(p)?'aws':/^(doas|su|pkexec|sudo)\b/.test(p)?'sys':'other';
 function render(){
- const k=$('keys');k.innerHTML='';
- for(const it of M.keys){if(it.key==='deny')continue;
-  const box=document.createElement('div');box.className='set';box.innerHTML=`<span class="k">${esc(it.key)}</span>`;
-  const opts=M.enums[it.key]||(typeof it.value==='boolean'?[false,true]:null);
-  if(!opts){box.innerHTML+=`<code>${esc(it.value)}</code>`}else{
-   const seg=document.createElement('div');seg.className='seg';
-   for(const o of opts){const b=document.createElement('button');b.textContent=String(o);if(o===WARN[it.key])b.classList.add('warn');if(o===it.value)b.classList.add('on');
-    b.onclick=()=>{if(o===it.value)return;if(o===WARN[it.key]&&!confirm(`Set ${it.key} = ${o}?\nThis removes approval prompts.`))return;it.value=o;change()};seg.append(b)}
-   box.append(seg)}
-  if(DESC[it.key])box.insertAdjacentHTML('beforeend',`<span class="d">${esc(DESC[it.key])}</span>`);k.append(box)}
  const counts={all:M.deny.length,sys:0,aws:0,guard:0,other:0,off:0};
  M.deny.forEach(d=>{counts[famOf(d.pattern)]++;if(!d.enabled)counts.off++});
  $('chips').innerHTML='';[['all','All'],['sys','System'],['aws','AWS'],['guard','Guard'],['other','Other'],['off','Disabled']].forEach(([f,l])=>{
