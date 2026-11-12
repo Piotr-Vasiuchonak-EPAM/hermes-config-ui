@@ -1,80 +1,183 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Hermes config: approvals</title>
+<!doctype html><html><head><meta charset="utf-8"><title>Hermes · approvals</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 <style>
-body{font:14px system-ui,sans-serif;max-width:900px;margin:20px auto;padding:0 12px;color:#222}
-h1{font-size:18px;margin:0}header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-#state{margin-left:auto;font-size:12px;color:#666}.err{color:#b00!important}
-button{font:inherit;padding:3px 9px;cursor:pointer}button:disabled{opacity:.4;cursor:default}
-table{border-collapse:collapse}td{padding:4px 8px}.seg button.on{background:#2563eb;color:#fff}
-.seg button.warn.on{background:#c2410c}.rule{display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #eee}
-.rule.off code{color:#999;text-decoration:line-through}.rule code{flex:1;font-size:13px}.rule .h{cursor:grab;color:#aaa}
-.rule.drag{background:#eef}.box{border:1px solid #ddd;border-radius:6px;padding:10px;margin:10px 0}
-input[type=text]{font:13px monospace;padding:3px;width:60%}#hist{max-height:300px;overflow:auto;font:12px monospace}
-#hist div{cursor:pointer;padding:1px 0}#hist div:hover{background:#f3f3f3}pre{font-size:12px;background:#f7f7f7;padding:6px;overflow:auto;max-height:300px}
-.hit{color:#b00}.miss{color:#080}
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2a3240;--txt:#e6edf3;--mut:#8b96a5;--acc:#4f8cff;--acc2:#7c5cff;
+--ok:#2ea043;--warn:#f0883e;--bad:#f85149;--r:12px;--mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:light){:root{--bg:#f4f6fa;--panel:#fff;--panel2:#f7f9fc;--line:#e3e8ef;--txt:#1b2330;--mut:#667085}}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 500px at 10% -10%,rgba(79,140,255,.18),transparent),radial-gradient(900px 400px at 110% 0,rgba(124,92,255,.14),transparent),var(--bg);
+color:var(--txt);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px 60px}
+header{position:sticky;top:0;z-index:5;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 75%,transparent);border-bottom:1px solid var(--line);margin-bottom:18px}
+header .wrap{display:flex;align-items:center;gap:10px;padding:12px 18px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px;margin-right:auto}
+.logo i{font-style:normal;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 4px 14px rgba(79,140,255,.35)}
+.logo small{font-weight:500;color:var(--mut);font-size:12px}
+.btn{font:inherit;font-size:13px;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:.15s}
+.btn:hover:not(:disabled){border-color:var(--acc);transform:translateY(-1px)}.btn:disabled{opacity:.35;cursor:default}
+.btn.ghost{background:transparent}.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.group{display:flex;gap:6px}.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mut);display:inline-block}.dot.active{background:var(--ok);box-shadow:0 0 0 3px rgba(46,160,67,.2)}.dot.bad{background:var(--bad)}
+#state{font-size:12px;color:var(--mut);padding:3px 10px;border-radius:99px;border:1px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#state.err{color:var(--bad);border-color:var(--bad)}#state.pend{color:var(--warn);border-color:var(--warn)}#state.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 0 rgba(255,255,255,.02),0 8px 24px rgba(0,0,0,.12)}
+.card h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.card h2 .pill{text-transform:none;letter-spacing:0}
+.pill{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
+.set{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.set .k{font:12px var(--mono);color:var(--mut)}.set .d{font-size:12px;color:var(--mut)}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px;align-self:flex-start}
+.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--mut);padding:4px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+.seg button:hover{color:var(--txt)}.seg button.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(79,140,255,.4)}
+.seg button.warn.on{background:var(--warn);box-shadow:0 2px 8px rgba(240,136,62,.4)}
+.hint{font-size:12px;color:var(--mut);margin-top:10px;display:flex;gap:6px;align-items:center}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.in{font:13px var(--mono);color:var(--txt);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 10px;outline:none;flex:1;min-width:180px;transition:.15s}
+.in:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,140,255,.18)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--panel2);color:var(--mut);cursor:pointer}
+.chip.on{border-color:var(--acc);color:var(--txt);background:color-mix(in srgb,var(--acc) 15%,var(--panel2))}
+.rules{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rule{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);background:var(--panel);transition:background .15s}
+.rule:last-child{border-bottom:0}.rule:hover{background:var(--panel2)}.rule.drag{opacity:.4}.rule.over{box-shadow:inset 0 2px 0 var(--acc)}
+.rule .h{cursor:grab;color:var(--mut);opacity:.4;user-select:none}.rule:hover .h{opacity:1}
+.rule code{flex:1;font:13px var(--mono);word-break:break-all}.rule.off code{color:var(--mut);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--mut) 60%,transparent)}
+.tag{font:11px var(--mono);padding:1px 7px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--mut);min-width:44px;text-align:center}
+.tag.aws{color:#f0b429;border-color:rgba(240,180,41,.35)}.tag.sys{color:var(--bad);border-color:rgba(248,81,73,.35)}.tag.guard{color:var(--acc2);border-color:rgba(124,92,255,.4)}
+.act{display:flex;gap:4px;opacity:0;transition:.15s}.rule:hover .act{opacity:1}
+.ib{border:1px solid transparent;background:transparent;color:var(--mut);border-radius:7px;width:28px;height:26px;cursor:pointer}.ib:hover{border-color:var(--line);color:var(--txt)}.ib.del:hover{color:var(--bad);border-color:var(--bad)}
+.sw{position:relative;width:34px;height:20px;flex:none}.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:var(--line);border-radius:99px;cursor:pointer;transition:.2s}
+.sw span:before{content:"";position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span:before{transform:translateX(14px)}
+.empty{padding:18px;text-align:center;color:var(--mut)}
+.res{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:9px;display:none}
+.res.hit{display:block;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.4);color:var(--bad)}
+.res.miss{display:block;background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.4);color:var(--ok)}
+.res code{font-family:var(--mono)}
+.cols{display:grid;grid-template-columns:1fr 1.3fr;gap:14px}@media(max-width:760px){.cols{grid-template-columns:1fr}}
+#hist{max-height:340px;overflow:auto;border-left:2px solid var(--line);margin-left:6px;padding-left:4px}
+.hi{position:relative;padding:6px 8px 6px 14px;border-radius:8px;cursor:pointer;font-size:12.5px}
+.hi:before{content:"";position:absolute;left:-10px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--mut)}
+.hi.ui:before{border-color:var(--acc)}.hi.ext:before{border-color:var(--warn)}.hi.rs:before{border-color:var(--acc2)}
+.hi:hover,.hi.sel{background:var(--panel2)}.hi .t{color:var(--mut);font:11px var(--mono)}.hi .m{word-break:break-word}.hi .r{font:11px var(--mono);color:var(--acc)}
+pre#diff{margin:0;font:12px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;max-height:300px;white-space:pre-wrap}
+pre#diff .a{color:var(--ok)}pre#diff .d{color:var(--bad)}pre#diff .h{color:var(--acc)}
+.toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:9}
+.toast div{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:9px;padding:9px 14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:in .2s ease}
+.toast div.err{border-left-color:var(--bad)}.toast div.ok{border-left-color:var(--ok)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+kbd{font:11px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--mut)}
 </style></head><body>
-<header><h1>Hermes approvals</h1>
-<button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button>
-<button onclick="restartT('gateway')">Restart gateway</button><button onclick="restartT('webui')">Restart WebUI</button>
-<button onclick="restartT('dashboard')">Restart dashboard</button><span id="state">loading…</span></header>
-<div class="box"><table id="keys"></table><div style="font-size:12px;color:#666">All approvals keys apply live (Hermes reloads config.yaml on mtime change). Restart is a fallback.</div></div>
-<div class="box"><b>Deny rules</b> <span id="cnt"></span> — hard floor, matches before yolo / mode off.
-<div style="margin:6px 0"><input type="text" id="filter" placeholder="filter"> </div>
-<div id="rules"></div>
-<div style="margin-top:6px"><input type="text" id="newp" placeholder="new glob, e.g. aws * delete*"> <button id="add">Add</button></div></div>
-<div class="box"><b>Test a command</b> (approximate: fnmatch only)<br><input type="text" id="tcmd" placeholder="aws ec2 terminate-instances --instance-ids i-1"> <button id="tbtn">Test</button> <span id="tres"></span></div>
-<div class="box"><b>History</b> (click = diff) <div id="hist"></div><pre id="diff" hidden></pre><button id="restore" hidden>Restore approvals from this revision</button></div>
+<header><div class="wrap">
+ <div class="logo"><i>🛡️</i><div>Hermes approvals<br><small>config.yaml · approvals block</small></div></div>
+ <div class="group"><button class="btn" id="undo" disabled title="Ctrl+Z">↶ Undo</button><button class="btn" id="redo" disabled title="Ctrl+Shift+Z">↷ Redo</button></div>
+ <span class="sep"></span>
+ <div class="group">
+  <button class="btn ghost danger" onclick="restartT('gateway')"><span class="dot" id="d-gateway"></span>Gateway</button>
+  <button class="btn ghost danger" onclick="restartT('webui')"><span class="dot" id="d-webui"></span>WebUI</button>
+  <button class="btn ghost danger" onclick="restartT('dashboard')"><span class="dot" id="d-dashboard"></span>Dashboard</button>
+ </div>
+ <div style="flex-basis:100%;display:flex;justify-content:flex-end"><span id="state">loading…</span></div>
+</div></header>
+<div class="wrap">
+<section class="card"><h2>Policy</h2><div class="grid" id="keys"></div>
+ <div class="hint">⚡ Changes apply live: Hermes reloads <code>config.yaml</code> on mtime change. The restart buttons above are a fallback.</div></section>
+
+<section class="card"><h2>Deny rules <span class="pill" id="cnt"></span><span class="pill">hard floor · beats yolo / mode off</span></h2>
+ <div class="toolbar"><input class="in" id="filter" placeholder="🔍 filter rules   ( / )"><input class="in" id="newp" placeholder="＋ new glob, e.g. *terraform destroy*"><button class="btn" id="add">Add rule</button></div>
+ <div class="chips" id="chips"></div>
+ <div class="rules" id="rules"></div></section>
+
+<section class="card"><h2>Command tester <span class="pill">fnmatch · approximate</span></h2>
+ <div class="toolbar" style="margin:0"><input class="in" id="tcmd" placeholder="aws ec2 terminate-instances --instance-ids i-123"><button class="btn" id="tbtn">Test ⏎</button></div>
+ <div class="res" id="tres"></div></section>
+
+<section class="card"><h2>History <span class="pill" id="hcnt"></span></h2>
+ <div class="cols"><div id="hist"></div>
+ <div><pre id="diff">Select a revision to see its diff.</pre><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn" id="restore" disabled>⟲ Restore this revision</button></div></div></div></section>
+</div>
+<div class="toast" id="toast"></div>
 <script>
-let M=null, undo=[], redo=[], timer=null, pending=null, selRev=null;
+let M=null, undo=[], redo=[], timer=null, selRev=null, fam='all';
 const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const api=async(m,u,b)=>{const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json','X-HCUI':'1'},body:b?JSON.stringify(b):undefined});
  const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(typeof j.detail=='string'?j.detail:(j.detail&&j.detail.detail)||r.status);e.status=r.status;e.body=j;throw e}return j};
-const st=(t,e)=>{$('state').textContent=t;$('state').className=e?'err':''};
+const st=(t,c)=>{$('state').textContent=t;$('state').className=c||''};
+const toast=(t,c)=>{const d=document.createElement('div');d.textContent=t;if(c)d.className=c;$('toast').append(d);setTimeout(()=>d.remove(),3500)};
 const WARN={mode:'off',cron_mode:'approve',unattended_mode:'approve'};
+const DESC={mode:'manual: ask for every flagged command · smart: LLM decides low-risk · off: no prompts (yolo)',
+ cron_mode:'Flagged commands in cron jobs (no user present)',unattended_mode:'Flagged commands on unattended platforms',
+ destructive_slash_confirm:'Ask before destructive slash commands'};
+const famOf=p=>/hermes-config|helper\.sock/.test(p)?'guard':/^aws\b/.test(p)?'aws':/^(doas|su|pkexec|sudo)\b/.test(p)?'sys':'other';
 function render(){
  const k=$('keys');k.innerHTML='';
- for(const it of M.keys){if(it.key==='deny')continue;const tr=k.insertRow();tr.insertCell().textContent=it.key;const c=tr.insertCell();
+ for(const it of M.keys){if(it.key==='deny')continue;
+  const box=document.createElement('div');box.className='set';box.innerHTML=`<span class="k">${esc(it.key)}</span>`;
   const opts=M.enums[it.key]||(typeof it.value==='boolean'?[false,true]:null);
-  if(!opts){c.textContent=String(it.value);continue}
-  const seg=document.createElement('span');seg.className='seg';
-  for(const o of opts){const b=document.createElement('button');b.textContent=String(o);if(o===WARN[it.key])b.classList.add('warn');if(o===it.value)b.classList.add('on');
-   b.onclick=()=>{if(o===it.value)return;if(o===WARN[it.key]&&!confirm(`Set ${it.key}=${o}? This removes approval prompts.`))return;it.value=o;change(`${it.key}=${o}`)};seg.append(b)}
-  c.append(seg)}
- const f=$('filter').value.toLowerCase(),R=$('rules');R.innerHTML='';
- M.deny.forEach((d,i)=>{if(f&&!d.pattern.toLowerCase().includes(f))return;
-  const row=document.createElement('div');row.className='rule'+(d.enabled?'':' off');row.draggable=!f;row.dataset.i=i;
-  row.innerHTML=`<span class="h">⋮⋮</span><input type="checkbox" ${d.enabled?'checked':''}><code></code><button title="edit">✎</button><button title="delete">✕</button>`;
+  if(!opts){box.innerHTML+=`<code>${esc(it.value)}</code>`}else{
+   const seg=document.createElement('div');seg.className='seg';
+   for(const o of opts){const b=document.createElement('button');b.textContent=String(o);if(o===WARN[it.key])b.classList.add('warn');if(o===it.value)b.classList.add('on');
+    b.onclick=()=>{if(o===it.value)return;if(o===WARN[it.key]&&!confirm(`Set ${it.key} = ${o}?\nThis removes approval prompts.`))return;it.value=o;change()};seg.append(b)}
+   box.append(seg)}
+  if(DESC[it.key])box.insertAdjacentHTML('beforeend',`<span class="d">${esc(DESC[it.key])}</span>`);k.append(box)}
+ const counts={all:M.deny.length,sys:0,aws:0,guard:0,other:0,off:0};
+ M.deny.forEach(d=>{counts[famOf(d.pattern)]++;if(!d.enabled)counts.off++});
+ $('chips').innerHTML='';[['all','All'],['sys','System'],['aws','AWS'],['guard','Guard'],['other','Other'],['off','Disabled']].forEach(([f,l])=>{
+  if(!counts[f]&&f!=='all')return;const c=document.createElement('span');c.className='chip'+(fam===f?' on':'');c.textContent=`${l} ${counts[f]}`;c.onclick=()=>{fam=f;render()};$('chips').append(c)});
+ const f=$('filter').value.toLowerCase(),R=$('rules');R.innerHTML='';const canDrag=!f&&fam==='all';let shown=0;
+ M.deny.forEach((d,i)=>{const fm=famOf(d.pattern);
+  if(f&&!d.pattern.toLowerCase().includes(f))return;if(fam==='off'?d.enabled:(fam!=='all'&&fam!==fm))return;shown++;
+  const row=document.createElement('div');row.className='rule'+(d.enabled?'':' off');row.draggable=canDrag;
+  row.innerHTML=`<span class="h" title="${canDrag?'drag to reorder':'clear filters to reorder'}">⠿</span><label class="sw"><input type="checkbox" ${d.enabled?'checked':''}><span></span></label><span class="tag ${fm}">${fm}</span><code></code><span class="act"><button class="ib" title="edit">✎</button><button class="ib del" title="delete">✕</button></span>`;
   row.querySelector('code').textContent=d.pattern;
   row.querySelector('input').onchange=e=>{d.enabled=e.target.checked;change()};
-  const [eb,xb]=row.querySelectorAll('button');
-  eb.onclick=()=>{const p=prompt('Edit glob',d.pattern);if(p&&p.trim()&&p!==d.pattern){d.pattern=p.trim();change()}};
-  xb.onclick=()=>{if(confirm(`Delete rule "${d.pattern}"? (Unchecking keeps it as a comment.)`)){M.deny.splice(i,1);change()}};
+  const [eb,xb]=row.querySelectorAll('.ib');
+  eb.onclick=()=>{const p=prompt('Edit glob (must match the FULL command, use * at both ends)',d.pattern);if(p&&p.trim()&&p!==d.pattern){d.pattern=p.trim();change()}};
+  xb.onclick=()=>{if(confirm(`Delete rule "${d.pattern}"?\n(Switching it off keeps it as a comment.)`)){M.deny.splice(i,1);change()}};
   row.ondragstart=e=>{e.dataTransfer.setData('text',i);row.classList.add('drag')};row.ondragend=()=>row.classList.remove('drag');
-  row.ondragover=e=>e.preventDefault();
-  row.ondrop=e=>{e.preventDefault();const from=+e.dataTransfer.getData('text');if(from===i)return;const [x]=M.deny.splice(from,1);M.deny.splice(i,0,x);change()};
+  row.ondragover=e=>{e.preventDefault();row.classList.add('over')};row.ondragleave=()=>row.classList.remove('over');
+  row.ondrop=e=>{e.preventDefault();row.classList.remove('over');const from=+e.dataTransfer.getData('text');if(from===i)return;const [x]=M.deny.splice(from,1);M.deny.splice(i,0,x);change()};
   R.append(row)});
- const on=M.deny.filter(d=>d.enabled).length;$('cnt').textContent=`(${on} on / ${M.deny.length-on} off)`;
+ if(!shown)R.innerHTML='<div class="empty">No rules match.</div>';
+ const on=M.deny.length-counts.off;$('cnt').textContent=`${on} on · ${counts.off} off`;
  $('undo').disabled=!undo.length;$('redo').disabled=!redo.length}
-function change(){render();st('unsaved…');clearTimeout(timer);timer=setTimeout(save,800)}
+function change(){render();st('● unsaved…','pend');clearTimeout(timer);timer=setTimeout(save,800)}
 async function save(){const body={block_sha:M.block_sha,keys:M.keys,deny:M.deny};
  try{const r=await api('PUT','/api/approvals',body);if(r.before){undo.push({before:r.before,after:r.rev});redo=[]}
-  M={...r.model,enums:M.enums};st(`saved ${new Date().toLocaleTimeString()} · ${r.summary} · ${r.rev}`);render();loadHist()}
- catch(e){if(e.status===409){st('changed on disk: reloaded, your last edit is lost',1);await load()}else{st('save failed: '+e.message,1);await load(true)}}}
+  M={...r.model,enums:M.enums};st(`✓ saved ${new Date().toLocaleTimeString()} · ${r.summary} · ${r.rev}`,'ok');toast(`Saved: ${r.summary}`,'ok');render();loadHist()}
+ catch(e){if(e.status===409){st('changed on disk: reloaded','err');toast('Changed on disk. Reloaded, your last edit is lost.','err');await load(true)}else{st('save failed: '+e.message,'err');toast('Save failed: '+e.message,'err');await load(true)}}}
 async function restoreRev(rev,label){clearTimeout(timer);const r=await api('POST','/api/restore',{block_sha:M.block_sha,rev});
- M={...r.model,enums:M.enums};st(`${label} ${rev} · ${r.summary} · ${r.rev}`);render();loadHist();return r}
-$('undo').onclick=async()=>{const u=undo.pop();try{await restoreRev(u.before,'undo to');redo.push(u)}catch(e){undo.push(u);st('undo failed: '+e.message,1);load(true)}render()};
-$('redo').onclick=async()=>{const u=redo.pop();try{await restoreRev(u.after,'redo to');undo.push(u)}catch(e){redo.push(u);st('redo failed: '+e.message,1);load(true)}render()};
-$('add').onclick=()=>{const p=$('newp').value.trim();if(!p)return;if(M.deny.some(d=>d.pattern===p))return st('duplicate rule',1);M.deny.push({pattern:p,enabled:true});$('newp').value='';change()};
+ M={...r.model,enums:M.enums};st(`✓ ${label} ${rev} · ${r.summary} · ${r.rev}`,'ok');toast(`${label} ${rev}`,'ok');render();loadHist();return r}
+async function doUndo(){if(!undo.length)return;const u=undo.pop();try{await restoreRev(u.before,'undo to');redo.push(u)}catch(e){undo.push(u);toast('Undo failed: '+e.message,'err');load(true)}render()}
+async function doRedo(){if(!redo.length)return;const u=redo.pop();try{await restoreRev(u.after,'redo to');undo.push(u)}catch(e){redo.push(u);toast('Redo failed: '+e.message,'err');load(true)}render()}
+$('undo').onclick=doUndo;$('redo').onclick=doRedo;
+function addRule(){const p=$('newp').value.trim();if(!p)return;if(M.deny.some(d=>d.pattern===p))return toast('Duplicate rule','err');
+ if(!p.includes('*')&&!confirm(`"${p}" has no * and matches only that exact command. Add anyway?`))return;
+ M.deny.push({pattern:p,enabled:true});$('newp').value='';fam='all';change()}
+$('add').onclick=addRule;$('newp').onkeydown=e=>{if(e.key==='Enter')addRule()};
 $('filter').oninput=render;
-$('tbtn').onclick=async()=>{const r=await api('POST','/api/test',{command:$('tcmd').value});
- $('tres').innerHTML=r.blocked_by.length?`<span class=hit>blocked by: ${r.blocked_by.map(esc).join(', ')}</span>`:`<span class=miss>not blocked by deny rules</span>`+(r.would_block_if_enabled.length?` (disabled match: ${r.would_block_if_enabled.map(esc).join(', ')})`:'')};
-const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function loadHist(){const h=await api('GET','/api/history');$('hist').innerHTML='';
- for(const c of h){const d=document.createElement('div');d.textContent=`${c.rev}  ${c.time.slice(0,19).replace('T',' ')}  ${c.msg}`;
-  d.onclick=async()=>{selRev=c.rev;const r=await api('GET',`/api/history/${c.rev}/diff`);$('diff').hidden=false;$('diff').textContent=r.diff;$('restore').hidden=false};$('hist').append(d)}}
-$('restore').onclick=async()=>{if(selRev&&confirm(`Restore approvals block from ${selRev}?`)){try{const b=M.block_sha;const r=await restoreRev(selRev,'restored');if(r.before)undo.push({before:r.before,after:r.rev});render()}catch(e){st(e.message,1)}}};
-async function restartT(t){if(!confirm(`Restart ${t}?`+(t==='webui'?' Open chats lose the stream for some seconds.':'')))return;st(`restarting ${t}…`);
- try{const r=await api('POST','/api/restart',{target:t});st(`${t}: ${r.state}`)}catch(e){st(`restart ${t} failed: ${e.message}`,1)}}
-async function load(keepMsg){try{M=await api('GET','/api/approvals');render();if(!keepMsg)st('loaded');loadHist()}catch(e){st('load failed: '+e.message,1)}}
-load();
+async function testCmd(){const v=$('tcmd').value.trim();if(!v)return;const r=await api('POST','/api/test',{command:v}),t=$('tres');
+ if(r.blocked_by.length){t.className='res hit';t.innerHTML=`⛔ Blocked by ${r.blocked_by.map(x=>`<code>${esc(x)}</code>`).join(', ')}`}
+ else{t.className='res miss';t.innerHTML='✓ Not blocked by deny rules'+(r.would_block_if_enabled.length?` · disabled match: ${r.would_block_if_enabled.map(x=>`<code>${esc(x)}</code>`).join(', ')}`:'')}}
+$('tbtn').onclick=testCmd;$('tcmd').onkeydown=e=>{if(e.key==='Enter')testCmd()};
+const ago=t=>{const s=(Date.now()-new Date(t))/1000;return s<60?'just now':s<3600?`${s/60|0} min ago`:s<86400?`${s/3600|0} h ago`:new Date(t).toLocaleString()};
+async function loadHist(){const h=await api('GET','/api/history');$('hist').innerHTML='';$('hcnt').textContent=`${h.length} revisions`;
+ for(const c of h){const d=document.createElement('div');const kind=c.msg.startsWith('external')?'ext':/restore|undo|redo/.test(c.msg)?'rs':'ui';
+  d.className='hi '+kind+(c.rev===selRev?' sel':'');d.innerHTML=`<div class="t">${esc(ago(c.time))} · <span class="r">${esc(c.rev)}</span></div><div class="m"></div>`;d.querySelector('.m').textContent=c.msg;
+  d.onclick=async()=>{selRev=c.rev;document.querySelectorAll('.hi').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');
+   const r=await api('GET',`/api/history/${c.rev}/diff`);$('diff').innerHTML=esc(r.diff||'(no diff)').split('\n').map(l=>/^\+(?!\+\+)/.test(l)?`<span class="a">${l}</span>`:/^-(?!--)/.test(l)?`<span class="d">${l}</span>`:/^@@/.test(l)?`<span class="h">${l}</span>`:l).join('\n');$('restore').disabled=false};
+  $('hist').append(d)}}
+$('restore').onclick=async()=>{if(selRev&&confirm(`Restore the approvals block from ${selRev}?`)){try{const r=await restoreRev(selRev,'restored');if(r.before){undo.push({before:r.before,after:r.rev});redo=[]}render()}catch(e){toast(e.message,'err')}}};
+async function status(){try{const s=await api('GET','/api/status');for(const [k,v] of Object.entries(s.units||{})){const d=$('d-'+k);if(d){d.className='dot '+(v==='active'?'active':'bad');d.title=v}}}catch(e){}}
+async function restartT(t){if(!confirm(`Restart ${t}?`+(t==='webui'?'\nOpen chats lose the stream for some seconds.':'')))return;$('d-'+t).className='dot';st(`↻ restarting ${t}…`,'pend');
+ try{const r=await api('POST','/api/restart',{target:t});st(`✓ ${t}: ${r.state}`,'ok');toast(`${t} restarted: ${r.state}`,'ok')}catch(e){st(`restart ${t} failed`,'err');toast(`Restart ${t} failed: ${e.message}`,'err')}status()}
+document.addEventListener('keydown',e=>{const inInput=/INPUT|TEXTAREA/.test(document.activeElement.tagName);
+ if(e.key==='/'&&!inInput){e.preventDefault();$('filter').focus()}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!inInput){e.preventDefault();e.shiftKey?doRedo():doUndo()}});
+async function load(keep){try{M=await api('GET','/api/approvals');render();if(!keep)st('loaded');loadHist()}catch(e){st('load failed: '+e.message,'err')}}
+load();status();setInterval(status,15000);
 </script></body></html>
