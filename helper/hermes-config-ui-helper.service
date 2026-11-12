@@ -1,0 +1,10 @@
+[Unit]
+Description=hermes-config-ui host helper (restart allow-list, Telegram notify)
+
+[Service]
+ExecStart=/usr/bin/python3 %h/repo/tools/hermes-config-ui/helper/hcui-helper.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

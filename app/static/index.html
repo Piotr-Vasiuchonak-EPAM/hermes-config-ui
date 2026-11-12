@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Hermes config: approvals</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font:14px system-ui,sans-serif;max-width:900px;margin:20px auto;padding:0 12px;color:#222}
+h1{font-size:18px;margin:0}header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+#state{margin-left:auto;font-size:12px;color:#666}.err{color:#b00!important}
+button{font:inherit;padding:3px 9px;cursor:pointer}button:disabled{opacity:.4;cursor:default}
+table{border-collapse:collapse}td{padding:4px 8px}.seg button.on{background:#2563eb;color:#fff}
+.seg button.warn.on{background:#c2410c}.rule{display:flex;gap:8px;align-items:center;padding:2px 4px;border-bottom:1px solid #eee}
+.rule.off code{color:#999;text-decoration:line-through}.rule code{flex:1;font-size:13px}.rule .h{cursor:grab;color:#aaa}
+.rule.drag{background:#eef}.box{border:1px solid #ddd;border-radius:6px;padding:10px;margin:10px 0}
+input[type=text]{font:13px monospace;padding:3px;width:60%}#hist{max-height:300px;overflow:auto;font:12px monospace}
+#hist div{cursor:pointer;padding:1px 0}#hist div:hover{background:#f3f3f3}pre{font-size:12px;background:#f7f7f7;padding:6px;overflow:auto;max-height:300px}
+.hit{color:#b00}.miss{color:#080}
+</style></head><body>
+<header><h1>Hermes approvals</h1>
+<button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button>
+<button onclick="restartT('gateway')">Restart gateway</button><button onclick="restartT('webui')">Restart WebUI</button>
+<button onclick="restartT('dashboard')">Restart dashboard</button><span id="state">loading…</span></header>
+<div class="box"><table id="keys"></table><div style="font-size:12px;color:#666">All approvals keys apply live (Hermes reloads config.yaml on mtime change). Restart is a fallback.</div></div>
+<div class="box"><b>Deny rules</b> <span id="cnt"></span> — hard floor, matches before yolo / mode off.
+<div style="margin:6px 0"><input type="text" id="filter" placeholder="filter"> </div>
+<div id="rules"></div>
+<div style="margin-top:6px"><input type="text" id="newp" placeholder="new glob, e.g. aws * delete*"> <button id="add">Add</button></div></div>
+<div class="box"><b>Test a command</b> (approximate: fnmatch only)<br><input type="text" id="tcmd" placeholder="aws ec2 terminate-instances --instance-ids i-1"> <button id="tbtn">Test</button> <span id="tres"></span></div>
+<div class="box"><b>History</b> (click = diff) <div id="hist"></div><pre id="diff" hidden></pre><button id="restore" hidden>Restore approvals from this revision</button></div>
+<script>
+let M=null, undo=[], redo=[], timer=null, pending=null, selRev=null;
+const $=id=>document.getElementById(id);
+const api=async(m,u,b)=>{const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json','X-HCUI':'1'},body:b?JSON.stringify(b):undefined});
+ const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(typeof j.detail=='string'?j.detail:(j.detail&&j.detail.detail)||r.status);e.status=r.status;e.body=j;throw e}return j};
+const st=(t,e)=>{$('state').textContent=t;$('state').className=e?'err':''};
+const WARN={mode:'off',cron_mode:'approve',unattended_mode:'approve'};
+function render(){
+ const k=$('keys');k.innerHTML='';
+ for(const it of M.keys){if(it.key==='deny')continue;const tr=k.insertRow();tr.insertCell().textContent=it.key;const c=tr.insertCell();
+  const opts=M.enums[it.key]||(typeof it.value==='boolean'?[false,true]:null);
+  if(!opts){c.textContent=String(it.value);continue}
+  const seg=document.createElement('span');seg.className='seg';
+  for(const o of opts){const b=document.createElement('button');b.textContent=String(o);if(o===WARN[it.key])b.classList.add('warn');if(o===it.value)b.classList.add('on');
+   b.onclick=()=>{if(o===it.value)return;if(o===WARN[it.key]&&!confirm(`Set ${it.key}=${o}? This removes approval prompts.`))return;it.value=o;change(`${it.key}=${o}`)};seg.append(b)}
+  c.append(seg)}
+ const f=$('filter').value.toLowerCase(),R=$('rules');R.innerHTML='';
+ M.deny.forEach((d,i)=>{if(f&&!d.pattern.toLowerCase().includes(f))return;
+  const row=document.createElement('div');row.className='rule'+(d.enabled?'':' off');row.draggable=!f;row.dataset.i=i;
+  row.innerHTML=`<span class="h">⋮⋮</span><input type="checkbox" ${d.enabled?'checked':''}><code></code><button title="edit">✎</button><button title="delete">✕</button>`;
+  row.querySelector('code').textContent=d.pattern;
+  row.querySelector('input').onchange=e=>{d.enabled=e.target.checked;change()};
+  const [eb,xb]=row.querySelectorAll('button');
+  eb.onclick=()=>{const p=prompt('Edit glob',d.pattern);if(p&&p.trim()&&p!==d.pattern){d.pattern=p.trim();change()}};
+  xb.onclick=()=>{if(confirm(`Delete rule "${d.pattern}"? (Unchecking keeps it as a comment.)`)){M.deny.splice(i,1);change()}};
+  row.ondragstart=e=>{e.dataTransfer.setData('text',i);row.classList.add('drag')};row.ondragend=()=>row.classList.remove('drag');
+  row.ondragover=e=>e.preventDefault();
+  row.ondrop=e=>{e.preventDefault();const from=+e.dataTransfer.getData('text');if(from===i)return;const [x]=M.deny.splice(from,1);M.deny.splice(i,0,x);change()};
+  R.append(row)});
+ const on=M.deny.filter(d=>d.enabled).length;$('cnt').textContent=`(${on} on / ${M.deny.length-on} off)`;
+ $('undo').disabled=!undo.length;$('redo').disabled=!redo.length}
+function change(){render();st('unsaved…');clearTimeout(timer);timer=setTimeout(save,800)}
+async function save(){const body={block_sha:M.block_sha,keys:M.keys,deny:M.deny};
+ try{const r=await api('PUT','/api/approvals',body);if(r.before){undo.push({before:r.before,after:r.rev});redo=[]}
+  M={...r.model,enums:M.enums};st(`saved ${new Date().toLocaleTimeString()} · ${r.summary} · ${r.rev}`);render();loadHist()}
+ catch(e){if(e.status===409){st('changed on disk: reloaded, your last edit is lost',1);await load()}else{st('save failed: '+e.message,1);await load(true)}}}
+async function restoreRev(rev,label){clearTimeout(timer);const r=await api('POST','/api/restore',{block_sha:M.block_sha,rev});
+ M={...r.model,enums:M.enums};st(`${label} ${rev} · ${r.summary} · ${r.rev}`);render();loadHist();return r}
+$('undo').onclick=async()=>{const u=undo.pop();try{await restoreRev(u.before,'undo to');redo.push(u)}catch(e){undo.push(u);st('undo failed: '+e.message,1);load(true)}render()};
+$('redo').onclick=async()=>{const u=redo.pop();try{await restoreRev(u.after,'redo to');undo.push(u)}catch(e){redo.push(u);st('redo failed: '+e.message,1);load(true)}render()};
+$('add').onclick=()=>{const p=$('newp').value.trim();if(!p)return;if(M.deny.some(d=>d.pattern===p))return st('duplicate rule',1);M.deny.push({pattern:p,enabled:true});$('newp').value='';change()};
+$('filter').oninput=render;
+$('tbtn').onclick=async()=>{const r=await api('POST','/api/test',{command:$('tcmd').value});
+ $('tres').innerHTML=r.blocked_by.length?`<span class=hit>blocked by: ${r.blocked_by.map(esc).join(', ')}</span>`:`<span class=miss>not blocked by deny rules</span>`+(r.would_block_if_enabled.length?` (disabled match: ${r.would_block_if_enabled.map(esc).join(', ')})`:'')};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function loadHist(){const h=await api('GET','/api/history');$('hist').innerHTML='';
+ for(const c of h){const d=document.createElement('div');d.textContent=`${c.rev}  ${c.time.slice(0,19).replace('T',' ')}  ${c.msg}`;
+  d.onclick=async()=>{selRev=c.rev;const r=await api('GET',`/api/history/${c.rev}/diff`);$('diff').hidden=false;$('diff').textContent=r.diff;$('restore').hidden=false};$('hist').append(d)}}
+$('restore').onclick=async()=>{if(selRev&&confirm(`Restore approvals block from ${selRev}?`)){try{const b=M.block_sha;const r=await restoreRev(selRev,'restored');if(r.before)undo.push({before:r.before,after:r.rev});render()}catch(e){st(e.message,1)}}};
+async function restartT(t){if(!confirm(`Restart ${t}?`+(t==='webui'?' Open chats lose the stream for some seconds.':'')))return;st(`restarting ${t}…`);
+ try{const r=await api('POST','/api/restart',{target:t});st(`${t}: ${r.state}`)}catch(e){st(`restart ${t} failed: ${e.message}`,1)}}
+async function load(keepMsg){try{M=await api('GET','/api/approvals');render();if(!keepMsg)st('loaded');loadHist()}catch(e){st('load failed: '+e.message,1)}}
+load();
+</script></body></html>
