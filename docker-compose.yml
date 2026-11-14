@@ -14,9 +14,9 @@ services:
       - HCUI_CONFIG=/hermes-data/config.yaml
     volumes:
       # directory mount, not a file mount: the atomic rename changes the inode
-      - ${HCUI_HERMES_DATA:-/home/peter/hermes/data}:/hermes-data
-      - ${HCUI_HISTORY:-/home/peter/.local/share/hermes-config-ui/history}:/history
-      - /home/peter/.local/share/hermes-config-ui/run:/run/hcui
+      - ${HCUI_HERMES_DATA:-${HOME}/hermes/data}:/hermes-data
+      - ${HCUI_HISTORY:-${HOME}/.local/share/hermes-config-ui/history}:/history
+      - ${HCUI_RUN:-${HOME}/.local/share/hermes-config-ui/run}:/run/hcui
     networks: [proxy-net]
 
 networks:
