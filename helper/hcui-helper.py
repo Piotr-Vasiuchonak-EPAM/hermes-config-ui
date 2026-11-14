@@ -18,9 +18,9 @@ from pathlib import Path
 SOCK = Path(os.environ.get("HCUI_HELPER_SOCK", Path.home() / ".local/share/hermes-config-ui/run/helper.sock"))
 ENV = Path(os.environ.get("HCUI_HERMES_ENV", Path.home() / "hermes/data/.env"))
 UNITS = {
-    "gateway": os.environ.get("HCUI_UNIT_GATEWAY", "hermes-gateway-4098606d.service"),
-    "webui": "hermes-webui.service",
-    "dashboard": "hermes-dashboard.service",
+    "gateway": os.environ.get("HCUI_UNIT_GATEWAY", "hermes-gateway.service"),
+    "webui": os.environ.get("HCUI_UNIT_WEBUI", "hermes-webui.service"),
+    "dashboard": os.environ.get("HCUI_UNIT_DASHBOARD", "hermes-dashboard.service"),
 }
 
 

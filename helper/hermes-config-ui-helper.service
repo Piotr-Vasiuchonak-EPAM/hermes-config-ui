@@ -2,6 +2,8 @@
 Description=hermes-config-ui host helper (restart allow-list, Telegram notify)
 
 [Service]
+# Optional host settings (HCUI_UNIT_*, HCUI_HERMES_ENV, HCUI_HELPER_SOCK)
+EnvironmentFile=-%h/.config/hermes-config-ui/helper.env
 ExecStart=/usr/bin/python3 %h/repo/tools/hermes-config-ui/helper/hcui-helper.py
 Restart=on-failure
 RestartSec=3
