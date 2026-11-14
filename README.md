@@ -21,7 +21,7 @@ Web UI to edit the `approvals:` block of the Hermes `config.yaml` on Asus-Hammer
    ```
 
 2. Start the container: `docker compose up -d --build`.
-3. nginx-proxy must give basic auth and an IP allow-list for `hermes-config.privet.one`.
+3. nginx-proxy must give basic auth and an IP allow-list for the `HCUI_HOST` name. Set `HCUI_HOST` in `.env` (example: `HCUI_HOST=hermes-config.example.com`).
    The app refuses `/api/` requests that have no `Authorization: Basic` header.
 
 ## Test

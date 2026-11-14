@@ -9,7 +9,7 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment:
-      - VIRTUAL_HOST=hermes-config.privet.one
+      - VIRTUAL_HOST=${HCUI_HOST:?set HCUI_HOST in .env}
       - VIRTUAL_PORT=8080
       - HCUI_CONFIG=/hermes-data/config.yaml
     volumes:
