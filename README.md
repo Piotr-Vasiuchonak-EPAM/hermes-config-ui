@@ -2,6 +2,8 @@
 
 Web UI to edit the `approvals:` block of the Hermes `config.yaml` on a Hermes host.
 
+![hermes-config-ui](docs/screenshot.png)
+
 - Save on edit (800 ms debounce). Each save is one atomic write and one git commit in a
   private history repository (`~/.local/share/hermes-config-ui/history`).
 - Undo, redo and restore write an old revision again as a new commit. History is never rewritten.
